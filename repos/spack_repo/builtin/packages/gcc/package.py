@@ -37,20 +37,22 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
     version("master", branch="master")
 
     # Latest stable
+    version("16.2.0", sha256="e6738e29597f733270731aa90600f37ffdc045079dfc27ec7e8192cc81085c3e")
     version("16.1.0", sha256="50efb4d94c3397aff3b0d61a5abd748b4dd31d9d3f2ab7be05b171d36a510f79")
 
     # Previous stable series releases
+    version("15.3.0", sha256="fa59c1beef8995f27c4d71c1df227587189315d3e6faff1bb4306e61b0c530eb")
     version("15.2.0", sha256="438fd996826b0c82485a29da03a72d71d6e3541a83ec702df4271f6fe025d24e")
     version("15.1.0", sha256="e2b09ec21660f01fecffb715e0120265216943f038d0e48a9868713e54f06cea")
 
     # Final releases of previous versions
-    version("14.3.0", sha256="e0dc77297625631ac8e50fa92fffefe899a4eb702592da5c32ef04e2293aca3a")
+    version("14.4.0", sha256="752b6f567beac83159c77a7680b1316bdd784738bff9a9d070112c09da90f6d9")
     version(
         "14.2.0",
         sha256="a7b39bc69cbf9e25826c5a60ab26477001f7c08d85cec04bc0e29cabed6f3cc9",
         preferred=sys.platform == "darwin",
     )
-    version("13.4.0", sha256="9c4ce6dbb040568fdc545588ac03c5cbc95a8dbf0c7aa490170843afb59ca8f5")
+    version("13.5.0", sha256="ec3df0015ed01411f91f9a9cd5b4da3070eb1222b02fadf4133c30c090399855")
     version("12.5.0", sha256="71cd373d0f04615e66c5b5b14d49c1a4c1a08efa7b30625cd240b11bab4062b3")
     version("11.5.0", sha256="a6e21868ead545cf87f0c01f84276e4b5281d672098591c1c896241f09363478")
     version("10.5.0", sha256="25109543fdf46f397c347b5d8b7a2c7e5694a5a51cce4b9c6e1ea8a71ca307c1")
@@ -68,9 +70,15 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
     # Deprecated older non-final releases
     with default_args(deprecated=True):
         version(
+            "14.3.0", sha256="e0dc77297625631ac8e50fa92fffefe899a4eb702592da5c32ef04e2293aca3a"
+        )
+        version(
             "14.1.0", sha256="e283c654987afe3de9d8080bc0bd79534b5ca0d681a73a11ff2b5d3767426840"
         )
 
+        version(
+            "13.4.0", sha256="9c4ce6dbb040568fdc545588ac03c5cbc95a8dbf0c7aa490170843afb59ca8f5"
+        )
         version(
             "13.3.0", sha256="0845e9621c9543a13f484e94584a49ffc0129970e9914624235fc1d061a0c083"
         )
@@ -195,7 +203,7 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
     )
     variant(
         "build_type",
-        default="RelWithDebInfo",
+        default="Release",
         values=("Debug", "Release", "RelWithDebInfo", "MinSizeRel"),
         description="CMake-like build type. "
         "Debug: -O0 -g; Release: -O3; "
@@ -205,6 +213,8 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
         "profiled", default=False, description="Use Profile Guided Optimization", when="+bootstrap"
     )
     variant("libsanitizer", default=True, description="Use libsanitizer")
+    with when("platform=linux"):
+        variant("futex", default=True, description="Use linux futex")
 
     # See https://gcc.gnu.org/install/prerequisites.html
 
@@ -400,7 +410,7 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
         conflicts("+bootstrap")
 
     # Graphite loop optimizations cause bootstrap comparison failures
-    conflicts("+graphite +bootstrap")
+    conflicts("+graphite +bootstrap", when="@:15")
 
     # Binutils can't build ld on macOS
     conflicts("+binutils", when="platform=darwin")
@@ -478,6 +488,18 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
 
         # aarch64-darwin support from Iain Sandoe's branch
         # the 14.2.0 branch has patches applicable to the x86_64 builds too, e.g., https://gcc.gnu.org/bugzilla/show_bug.cgi?id=116809
+        patch(
+            "https://github.com/iains/gcc-16-branch/compare/6afcc4f6da931eb93f3ab001a0dd9650ea71d1ea..gcc-16.1-darwin-r0.patch?full_index=1",
+            sha256="8d613f218608806db7e264d9d3f4ade4ff3f8a46c4cfece917e8701b1bb01475",
+            when="@16.1.0 target=aarch64:",
+        )
+
+        patch(
+            "https://github.com/iains/gcc-15-branch/compare/4db0e8df15bef836558857c291c323add11d035c..gcc-15.3-darwin-r0.patch?full_index=1",
+            sha256="8d6298dcb4f0d5cb419792405888d4e0820a9227da1374cfe413696d755468d7",
+            when="@15.3.0 target=aarch64:",
+        )
+
         patch(
             "https://github.com/iains/gcc-14-branch/compare/04696df09633baf97cdbbdd6e9929b9d472161d3..5e090fc0112f86cbcaebb6065ad97ea599868505.patch?full_index=1",
             sha256="d74542461b22ae2d23533323e01861f4c66d252345c51682740f521a74412500",
@@ -626,6 +648,8 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
 
     # see https://gcc.gnu.org/gcc-11/changes.html 11.5 Caveats
     patch("patch-5522dec054cb940fe83661b96249aa12c54c1d77.patch", when="@11.5.0 target=aarch64:")
+    patch("cuda11-drops-sm_30-support.patch", when="@13:14 +nvptx ^cuda@13:")
+    patch("cuda13-drops-sm_52-support.patch", when="@15: +nvptx ^cuda@13:")
 
     build_directory = "spack-build"
 
@@ -856,6 +880,11 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
             # Improve the build time for stage 2 a bit by enabling -O1 in stage 1.
             # Note: this is ignored under ~bootstrap.
             f.write("STAGE1_CFLAGS += -O1\n")
+            if self.spec.satisfies("+bootstrap @16:16.2"):
+                # GCC 16 fails in compairing debug infos. See:
+                # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=125598
+                with open("config/bootstrap-debug.mk") as bd:
+                    f.write(bd.read())
 
     # https://gcc.gnu.org/install/configure.html
     def configure_args(self):
@@ -890,6 +919,11 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
         if spec.satisfies("languages=jit"):
             options.append("--enable-host-shared")
 
+        # https://github.com/spack/spack-packages/issues/5677
+        if spec.satisfies("+binutils"):
+            binutils = spec["binutils"].prefix.bin
+            options.append(f"--with-build-time-tools={binutils}")
+
         # enable_bootstrap
         if spec.satisfies("+bootstrap"):
             options.extend(["--enable-bootstrap"])
@@ -901,6 +935,13 @@ class Gcc(AutotoolsPackage, GNUMirrorPackage, CompilerPackage):
             options.extend(["--enable-libsanitizer"])
         else:
             options.extend(["--disable-libsanitizer"])
+
+        # enable_libsanitizera
+        with when("platform=linux"):
+            if spec.satisfies("+futex"):
+                options.extend(["--enable-linux-futex"])
+            else:
+                options.extend(["--disable-linux-futex"])
 
         # Configure include and lib directories explicitly for these
         # dependencies since the short GCC option assumes that libraries

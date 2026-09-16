@@ -70,7 +70,7 @@ class Mpich(MpichEnvironmentModifications, AutotoolsPackage, CudaPackage, ROCmPa
     list_url = "https://www.mpich.org/static/downloads/"
     list_depth = 1
 
-    maintainers("raffenet", "yfguo")
+    maintainers("raffenet", "hzhou")
     tags = ["e4s"]
     executables = ["^mpichversion$"]
 
@@ -164,6 +164,13 @@ supported, and netmod is ignored if device is ch3:sock.""",
         "of applications that do heavy concurrent MPI"
         "communications. Set MPIR_CVAR_CH4_NUM_VCIS=<N> to "
         "enable multiple vcis at runtime.",
+    )
+
+    variant(
+        "mpi5-abi",
+        default=False,
+        when="@5:",
+        description="Enable MPI-5 standard ABI.",
     )
 
     variant(
@@ -491,12 +498,10 @@ supported, and netmod is ignored if device is ch3:sock.""",
         return results
 
     def flag_handler(self, name, flags):
-        if name == "fflags":
+        if name == "fflags" and "fortran" in self.spec:
             # https://bugzilla.redhat.com/show_bug.cgi?id=1795817
             # https://github.com/spack/spack/issues/17934
-            # TODO: we should add the flag depending on the real Fortran compiler spec and not the
-            #  toolchain spec, which might be mixed.
-            if any(self.spec.satisfies(s) for s in ["%gcc@10:", "%apple-clang@11:", "%clang@11:"]):
+            if any(self.spec["fortran"].satisfies(s) for s in ["gcc@10:", "llvm@11:19.1.7"]):
                 # Note that the flag is not needed to build the package starting version 4.1
                 # (see https://github.com/pmodels/mpich/pull/5840) but we keep adding the flag here
                 # to avoid its presence in the MPI compiler wrappers.
@@ -554,6 +559,9 @@ supported, and netmod is ignored if device is ch3:sock.""",
             )
 
         config_args.extend(self.enable_or_disable("fortran"))
+
+        if spec.satisfies("@5:"):
+            config_args.extend(self.enable_or_disable("mpi-abi", variant="mpi5-abi"))
 
         if "+slurm" in spec:
             config_args.append("--with-slurm=yes")
