@@ -17,7 +17,7 @@ class Alps(CMakePackage):
     """
 
     homepage = "https://alps.comp-phys.org"
-    url = "https://github.com/ALPSim/ALPS/archive/refs/tags/v2.3.4-beta.2.tar.gz"
+    url = "https://github.com/ALPSim/ALPS/archive/refs/tags/v3.0.0.tar.gz"
     git = "https://github.com/ALPSim/ALPS.git"
 
     maintainers("Ooolab", "egull", "Sinan81")
@@ -26,10 +26,10 @@ class Alps(CMakePackage):
     license("MIT", checked_by="egull")
 
     version("master", branch="master")
+    version("3.0.0", sha256="ea44545afc570de7df8c01f093b769adf344f72579968b700e4e93df9eedb0ea")
     version(
         "2.3.4-beta.2",
         sha256="ca2e1307630e6fccac279ab7711036f7c6dee43c386fd6f24cfc77c86a3c7f1c",
-        preferred=True,
     )
     version("2.3.3", sha256="73d8c9038d00c7f768f65474b2a657d5c49daf105ddfcaef7d16737500b5d02f")
 
