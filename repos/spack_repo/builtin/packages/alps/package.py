@@ -57,9 +57,9 @@ class Alps(CMakePackage):
     )
     depends_on("boost+mpi", when="@3: +mpi")
     depends_on("boost~mpi", when="@3: ~mpi")
-    # Boost.Python numpy submodule needs boost+numpy when it is safe to use:
-    # Boost >= 1.87 fixed NumPy 2.0 support; older Boost is safe only with NumPy < 2.
-    # For Boost 1.69-1.86 + NumPy >= 2.0, ALPS falls back to boost::python::numeric::array.
+    # Boost >= 1.87 supports NumPy 2. Older Boost can auto-detect NumPy and
+    # compile its incompatible NumPy module even when boost~numpy is requested.
+    requires("^boost@1.87:", when="@3: ^py-numpy@2:")
     requires("^boost+numpy", when="@3: ^boost@1.87:")
     requires("^boost+numpy", when="@3: ^boost@1.69:1.86 ^py-numpy@:1")
 
@@ -73,6 +73,7 @@ class Alps(CMakePackage):
     # Keep the DAG truly serial for ~mpi: fftw defaults to +mpi, which would
     # otherwise pull in an MPI that ALPS's CMake then finds and links.
     depends_on("fftw~mpi", when="~mpi")
+    depends_on("blas")
     depends_on("lapack")
     depends_on("python@3.9:", type=("build", "link", "run"))
     depends_on("py-numpy", type=("build", "run"))
@@ -179,6 +180,9 @@ class Alps(CMakePackage):
             self.define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", True),
             self.define("CMAKE_BUILD_WITH_INSTALL_RPATH", True),
             self.define("HDF5_DIR", self.spec["hdf5"].prefix),
+            # HDF5 supplies its own compression dependencies. ALPS does not
+            # call SZIP directly, and probing it can add unrelated host headers.
+            self.define("CMAKE_DISABLE_FIND_PACKAGE_SZIP", True),
             # Hand the concretized BLAS/LAPACK to ALPS explicitly.  Its
             # FindLapack.cmake otherwise probes the host first (MKLROOT in the
             # environment, Accelerate on macOS) and links whatever it finds
